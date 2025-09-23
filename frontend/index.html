@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Frontend Form</title>
+</head>
+<body>
+  <h1>Send Data to Flask Backend</h1>
+  <!-- This posts to Express; Express forwards to Flask -->
+  <form action="/submit-form" method="POST">
+    <label for="name">Name:</label>
+    <input type="text" name="name" id="name" required /><br/><br/>
+
+    <label for="email">Email:</label>
+    <input type="email" name="email" id="email" required /><br/><br/>
+
+    <button type="submit">Submit</button>
+  </form>
+</body>
+</html>
