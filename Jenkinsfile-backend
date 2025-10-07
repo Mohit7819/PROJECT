@@ -1,0 +1,32 @@
+pipeline {
+  agent any
+  environment {
+    APP_DIR = '/home/deployer/project/backend'
+    PM2_NAME = 'flask-app'
+  }
+  stages {
+    stage('Checkout') {
+      steps {
+        echo "Source code checked out"
+      }
+    }
+    stage('Install dependencies') {
+      steps {
+        sh '''
+          cd backend
+          python3 -m venv venv || true
+          . venv/bin/activate
+          pip install -r requirements.txt
+        '''
+      }
+    }
+    stage('Deploy') {
+      steps {
+        sh '''
+          sudo -u deployer rsync -av --delete backend/ ${APP_DIR}/
+          sudo -u deployer bash -lc "cd ${APP_DIR} && . venv/bin/activate && pip install -r requirements.txt && pm2 restart ${PM2_NAME} || pm2 start gunicorn --name ${PM2_NAME} --bind 0.0.0.0:5000 'app:app'"
+        '''
+      }
+    }
+  }
+}
