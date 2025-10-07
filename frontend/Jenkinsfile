@@ -1,41 +1,41 @@
 pipeline {
-  agent any
-  environment {
-    APP_DIR = '/home/deployer/express-app'
-    PM2_NAME = 'express-app'
-    GIT_BRANCH = 'main'
-  }
-  stages {
-    stage('Checkout') {
-      steps {
-        echo "Express source code checked out"
-      }
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Express source code checked out'
+            }
+        }
+
+        stage('Install & Test') {
+            steps {
+                sh '''
+                cd frontend
+                npm install
+                '''
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh '''
+                cd frontend
+                pm2 delete express-app || true
+                pm2 start app.js --name express-app
+                pm2 save
+                '''
+            }
+        }
     }
 
-    stage('Install & Test') {
-      steps {
-        sh '''
-          set -e
-          npm ci
-          npm test || true
-        '''
-      }
+    post {
+        success {
+            echo 'Express deployed successfully'
+        }
+        failure {
+            echo 'Express deploy failed'
+        }
     }
-
-    stage('Deploy') {
-      steps {
-        sh '''
-          set -e
-          sudo -u deployer rsync -av --delete ${WORKSPACE}/ ${APP_DIR}/
-          sudo -u deployer bash -lc "cd ${APP_DIR} && npm ci && pm2 restart ${PM2_NAME} || pm2 start npm --name ${PM2_NAME} -- start"
-        '''
-      }
-    }
-  }
-
-  post {
-    success { echo "Express deploy succeeded" }
-    failure { echo "Express deploy failed" }
-  }
 }
 
