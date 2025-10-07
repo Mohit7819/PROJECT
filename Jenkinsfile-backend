@@ -13,28 +13,21 @@ pipeline {
             }
         }
 
-        stage('Install dependencies') {
-            steps {
-                sh '''
-                    cd backend
-                    python3 -m venv venv
-                    . venv/bin/activate
-                    pip install -r requirements.txt
-                '''
-            }
-        }
-
         stage('Deploy') {
             steps {
                 sh '''
+                    # Copy project to deployer
                     sudo -u deployer rsync -av --delete backend/ ${APP_DIR}/
+
+                    # Install & restart app as deployer
                     sudo -u deployer bash -lc "
                         cd ${APP_DIR} &&
                         python3 -m venv venv &&
                         source venv/bin/activate &&
+                        pip install --upgrade pip &&
                         pip install -r requirements.txt &&
                         pip install gunicorn &&
-                        pm2 restart ${PM2_NAME} || pm2 start gunicorn --name ${PM2_NAME} -- --bind 0.0.0.0:5000 app:app
+                        pm2 restart ${PM2_NAME} || pm2 start ${APP_DIR}/venv/bin/gunicorn --name ${PM2_NAME} -- --bind 0.0.0.0:5000 app:app
                     "
                 '''
             }
