@@ -22,7 +22,11 @@ pipeline {
       steps {
         sh '''
           sudo -u deployer rsync -av --delete frontend/ ${APP_DIR}/
-          sudo -u deployer bash -lc "cd ${APP_DIR} && npm ci && pm2 restart ${PM2_NAME} || pm2 start npm --name ${PM2_NAME} -- start"
+          sudo -u deployer bash -lc "
+            cd ${APP_DIR} &&
+            npm ci &&
+            pm2 restart ${PM2_NAME} || pm2 start app.js --name ${PM2_NAME}
+          "
         '''
       }
     }
