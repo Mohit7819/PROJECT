@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Flask source code checked out'
+            }
+        }
+
+        stage('Install deps & Test') {
+            steps {
+                sh '''
+                    set -e
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r backend/requirements.txt
+                '''
+            }
+        }
+
+        stage('Deploy to server') {
+            steps {
+                sh '''
+                    echo "Deploying Flask backend..."
+                    . venv/bin/activate
+                    # Stop old app if running
+                    pm2 delete flask-app || true
+                    # Start new app with gunicorn
+                    pm2 start gunicorn --name flask-app -- \
+                        --bind 0.0.0.0:5000 backend.app:app
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Flask deploy successful'
+        }
+        failure {
+            echo 'Flask deploy failed'
+        }
+    }
+}
+
