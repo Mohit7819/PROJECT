@@ -1,41 +1,44 @@
 pipeline {
-  agent any
-  environment {
-    APP_DIR = '/home/deployer/project/backend'
-    PM2_NAME = 'flask-app'
-  }
-  stages {
-    stage('Checkout') {
-      steps {
-        echo "Source code checked out"
-      }
+    agent any
+
+    environment {
+        APP_DIR = "/home/deployer/project/backend"
+        PM2_NAME = "flask-app"
     }
-    stage('Install dependencies') {
-      steps {
-        sh '''
-          cd backend
-          python3 -m venv venv || true
-          . venv/bin/activate
-          pip install -r requirements.txt
-        '''
-      }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo "Source code checked out"
+            }
+        }
+
+        stage('Install dependencies') {
+            steps {
+                sh '''
+                    cd backend
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install -r requirements.txt
+                '''
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh '''
+                    sudo -u deployer rsync -av --delete backend/ ${APP_DIR}/
+                    sudo -u deployer bash -lc "
+                        cd ${APP_DIR} &&
+                        python3 -m venv venv &&
+                        source venv/bin/activate &&
+                        pip install -r requirements.txt &&
+                        pip install gunicorn &&
+                        pm2 restart ${PM2_NAME} || pm2 start gunicorn --name ${PM2_NAME} -- --bind 0.0.0.0:5000 app:app
+                    "
+                '''
+            }
+        }
     }
-    stage('Deploy') {
-      steps {
-        sh '''
-          sudo -u deployer rsync -av --delete backend/ ${APP_DIR}/
-          sudo -u deployer bash -lc "
-            cd ${APP_DIR} &&
-            python3 -m venv venv &&
-            . venv/bin/activate &&
-            pip install -r requirements.txt &&
-            pip install gunicorn &&
-            pm2 start gunicorn --name ${PM2_NAME} -- \\
-              --bind 0.0.0.0:5000 app:app || pm2 restart ${PM2_NAME}
-          "
-        '''
-      }
-    }
-  }
 }
 
